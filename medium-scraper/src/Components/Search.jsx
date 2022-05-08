@@ -3,33 +3,77 @@ import axios from 'axios';
 
 function Search() {
     const [tag, setTag] = useState("");
-    const [posts, setPosts] = useState([]);
-    let crawledPostsCount = -1;
+    const [posts, setPosts] = useState(new Map());
+    const [pageNumber, setPageNumber] = useState(1);
+    const [loading, setLoading] = useState(true);
 
-    const NGROK_URL = "218d-103-48-197-159";
+
+    const NGROK_URL = "ad0e-103-212-145-4";
 
     const onFormSubmit = async (e) => {
-        e.preventDefault(); // to prevent refresh
+        e.preventDefault();
+        // to prevent refresh
     }
 
 
-    const fetchPostsUrls = async () => {
-        setPosts([]);
-        console.log("request sent");
-        crawledPostsCount = -1;
+    const fetchLatestPostsUrls = async () => {
+        setPosts(new Map());
+        setLoading(true);
+        for (let i = 0; i < 10; i++) {
+            let post = {
+                id: i,
+                title: "pending"
+            };
+
+            setPosts(posts => new Map(posts.set(post.id, post)));
+        }
+
         let response = await axios.get(`http://${NGROK_URL}.ngrok.io/search/${tag}`, {
             crossDomain: true,
         });
-        console.log(response.data);
+
         const post_urls = response.data.post_urls
+        // display crawling in frontend for length of posts
+        setPosts(new Map());
+        for (let i = 0; i < post_urls.length; i++) {
+            let post = {
+                id: post_urls[i].split("-").at(-1),
+                title: "crawling"
+            };
+
+            setPosts(posts => new Map(posts.set(post.id, post)));
+        }
+        fetchPosts(post_urls);
+    }
+
+    const fetchMorePostsUrls = async () => {
+        setPageNumber(pageNumber + 1);
+        setLoading(true);
+        let tempOldPosts = posts;
+        for (let i = 0; i < 10; i++) {
+            let post = {
+                id: i,
+                title: "pending"
+            };
+
+            setPosts(posts => new Map(posts.set(post.id, post)));
+        }
+
+        let response = await axios.get(`http://${NGROK_URL}.ngrok.io/load_more_posts/${tag}/${pageNumber}`, {
+            crossDomain: true,
+        });
+
+        const post_urls = response.data
+        setPosts(new Map());
+        setPosts(tempOldPosts);
         // display crawling in frontend for length of posts
         for (let i = 0; i < post_urls.length; i++) {
             let post = {
-                id: i,
+                id: post_urls[i].split("-").at(-1),
                 title: "crawling"
             };
-            setPosts(posts => [...posts, post]);
 
+            setPosts(posts => new Map(posts.set(post.id, post)));
         }
         fetchPosts(post_urls);
     }
@@ -42,13 +86,11 @@ function Search() {
 
         newSocket.onmessage = message => {
             const post = JSON.parse(message.data);
-
-            setPosts(posts => {
-                posts[crawledPostsCount] = post;
-                return [...posts]
-            });
-            crawledPostsCount++;
+            setPosts(posts => new Map(posts.set(post.id, post)));
         }
+        newSocket.addEventListener('close', (_) => {
+            setLoading(false);
+        });
     }
 
     return (
@@ -56,17 +98,21 @@ function Search() {
             <br />
             <input type="text" onChange={(e) => { setTag(e.target.value) }} value={tag} />
             <button onClick={async () => {
-                await fetchPostsUrls();
+                await fetchLatestPostsUrls();
             }}> Send </button>
             <br />
-
-            {posts.map((post) =>
-                <div key={post.id}>
+            {[...posts.keys()].map(k =>
+                <div key={k}>
                     <br />
-                    {post.title}
+                    {posts.get(k).title}
                     <br />
                 </div >
             )}
+            <br />
+            {!loading ? <button onClick={async () => {
+                await fetchMorePostsUrls();
+            }}> Load more </button> : <br />}
+            <br />
         </form>
     )
 }
