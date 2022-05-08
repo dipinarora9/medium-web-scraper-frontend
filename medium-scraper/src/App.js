@@ -13,10 +13,13 @@ function App() {
     <Router>
       <div className="App">
         <Switch>
-          <Route path="/:post">
+          <Route path="/post/:post">
             <PostPage />
           </Route>
           <Route path="/" exact>
+            <Search />
+          </Route>
+          <Route path="/search/:tag">
             <Search />
           </Route>
         </Switch>
