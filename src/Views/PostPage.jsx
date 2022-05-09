@@ -8,8 +8,6 @@ function PostPage() {
 
     useEffect(() => {
         let localStorageData = JSON.parse(localStorage.getItem('post'));
-        console.log(localStorageData);
-        console.log(localStorageData);
         setPost(localStorageData);
     }, []);
 

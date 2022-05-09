@@ -6,16 +6,23 @@ import './search.css';
 function Search() {
     const [tag, setTag] = useState("");
     const [posts, setPosts] = useState(new Map());
+    const [historyTags, setHistoryTags] = useState([]);
     const [suggestedTags, setSuggestedTags] = useState([]);
     const [pageNumber, setPageNumber] = useState(1);
     const [loading, setLoading] = useState(true);
 
-    const NGROK_URL = "e89e-103-48-197-134";
+    const NGROK_URL = "d66a-103-48-197-134";
 
     useEffect(() => {
         let t = window.location.href.split('/').at(-1);
         setTag(t);
         document.getElementById("tag_field").value = t;
+
+        let searchHistory = localStorage.getItem('searchHistory');
+
+        if (searchHistory) {
+            setHistoryTags(JSON.parse(searchHistory));
+        }
     }, []);
 
 
@@ -29,6 +36,8 @@ function Search() {
         setPosts(new Map());
         setLoading(true);
         setSuggestedTags([]);
+        saveTag(tag);
+
         for (let i = 0; i < 10; i++) {
             let post = {
                 id: i,
@@ -37,7 +46,7 @@ function Search() {
 
             setPosts(posts => new Map(posts.set(post.id, post)));
         }
-
+        console.log(tag);
         let response = await axios.get(`http://${NGROK_URL}.ngrok.io/search/${tag}`, {
             crossDomain: true,
         });
@@ -109,8 +118,23 @@ function Search() {
         });
     }
 
-    const handleClick = (post) => {
+
+
+    const openPost = (post) => {
         localStorage.setItem('post', JSON.stringify(post));
+    }
+    
+    // const searchTag = (t) => {
+    //     setTag(t);
+    //     document.getElementById("tag_field").value = t;
+    //     fetchLatestPostsUrls();
+    // }
+
+    const saveTag = (tag) => {
+        if (!historyTags.includes(tag)) {
+            localStorage.setItem('searchHistory', JSON.stringify([tag, ...historyTags]));
+            setHistoryTags(historyTags => [tag, ...historyTags]);
+        }
     }
 
     return (
@@ -132,6 +156,20 @@ function Search() {
                     >{tag}</Link>
                 )
             })}
+            {posts.size === 0 ? <div>
+                {historyTags.length > 0 ?
+                    <div>Previous searches</div> : <div></div>}
+                {historyTags.map((tag) => {
+                    return (
+                        <Link
+                            to={{
+                                pathname: "/search/" + tag,
+                            }}
+                            target="_blank"
+                            key={tag} className="tags"
+                        >{tag}</Link>
+                    )
+                })}</div> : <div></div>}
             {posts.size > 0 ? [...posts.keys()].map(k =>
                 <div key={k}>
                     <br />
@@ -140,7 +178,7 @@ function Search() {
                             pathname: "/post/" + k,
                         }}
                         target="_blank"
-                        onClick={() => handleClick(posts.get(k))}
+                        onClick={() => openPost(posts.get(k))}
                     >{posts.get(k).title}</Link>
                     {posts.get(k)?.tags !== undefined ?
                         <div>
