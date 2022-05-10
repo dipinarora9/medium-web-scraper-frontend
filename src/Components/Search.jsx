@@ -10,6 +10,7 @@ function Search() {
     const [posts, setPosts] = useState(new Map());
     const [historyTags, setHistoryTags] = useState([]);
     const [suggestedTags, setSuggestedTags] = useState([]);
+    const [trendingTags, setTrendingTags] = useState(null);
     const [typo, setTypo] = useState(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [loading, setLoading] = useState(true);
@@ -99,6 +100,25 @@ function Search() {
         return correct_word;
     }
 
+    const fetchTrendingTags = async () => {
+        if (trendingTags) return;
+
+        setTrendingTags([]);
+
+        let response = await axios.get(`https://${BACKEND_URL}/trending_tags`, {
+            crossDomain: true,
+        });
+
+        const tags = response.data;
+
+        setTrendingTags(_ => [...tags]);
+    }
+
+    useEffect(() => {
+        fetchTrendingTags();
+    }, []);
+
+
     const fetchMorePostsUrls = async () => {
         if (pageNumber > 2) return;
         setPageNumber(pageNumber + 1);
@@ -166,17 +186,33 @@ function Search() {
         <form onSubmit={onFormSubmit}>
             <br />
             <input type="text" id="tag_field"
-                onChange={(e) => { setTag(e.target.value) }} />
+                onChange={(e) => {
+                    setTag(e.target.value);
+                    setTypo(null);
+                }} />
             <button onClick={async () => {
                 await fetchLatestPostsUrls();
-            }}> Send </button>
+            }}> Search </button>
             <br />
             {typo !== null ? <div>
                 <br />
                 <div>Showing results for {tag}. Instead of {typo}</div><br />
             </div> : <div></div>
             }
-            {suggestedTags.length > 0 ? <div>Suggested tags</div> : <div></div>}
+            {trendingTags && trendingTags.length > 0 ? <div>Trending tags</div> : <div></div>}
+            {
+                trendingTags && trendingTags.map((tag) => {
+                    return (
+                        <Link
+                            to={{
+                                pathname: "/search/" + tag,
+                            }}
+                            key={"trending_" + tag} className="tags" target="_blank"
+                        >{tag}</Link>
+                    )
+                })
+            }
+            {suggestedTags.length > 0 ? <div><br /><div>Suggested tags</div></div> : <div></div>}
             {
                 suggestedTags.map((tag) => {
                     return (
@@ -184,7 +220,7 @@ function Search() {
                             to={{
                                 pathname: "/search/" + tag,
                             }}
-                            key={tag} className="tags" target="_blank"
+                            key={"suggested_" + tag} className="tags" target="_blank"
                         >{tag}</Link>
                     )
                 })
@@ -192,7 +228,7 @@ function Search() {
             {
                 posts.size === 0 ? <div>
                     {historyTags.length > 0 ?
-                        <div>Previous searches</div> : <div></div>}
+                        <div><br /><div>Previous searches</div></div> : <div></div>}
                     {historyTags.map((tag) => {
                         return (
                             <Link
@@ -200,7 +236,7 @@ function Search() {
                                     pathname: "/search/" + tag,
                                 }}
                                 target="_blank"
-                                key={tag} className="tags"
+                                key={"history_" + tag} className="tags"
                             >{tag}</Link>
                         )
                     })}</div> : <div></div>
