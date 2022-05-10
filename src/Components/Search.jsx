@@ -8,23 +8,24 @@ function Search() {
     const [posts, setPosts] = useState(new Map());
     const [historyTags, setHistoryTags] = useState([]);
     const [suggestedTags, setSuggestedTags] = useState([]);
+    const [typo, setTypo] = useState(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [loading, setLoading] = useState(true);
 
-    const BACKEND_URL = "medium-web-scraper.herokuapp.com";
+    const BACKEND_URL = "28d5-103-48-197-134.ngrok.io";
 
     useEffect(() => {
-        let t = window.location.href.split('/').at(-1);
-        setTag(t);
-        document.getElementById("tag_field").value = t;
-
         let searchHistory = localStorage.getItem('searchHistory');
 
         if (searchHistory) {
             setHistoryTags(JSON.parse(searchHistory));
         }
-    }, []);
 
+        if (window.location.href.endsWith("#")) return;
+        let t = window.location.href.split('/').at(-1);
+        setTag(t);
+        document.getElementById("tag_field").value = t;
+    }, []);
 
     const onFormSubmit = async (e) => {
         // to prevent refresh
@@ -32,11 +33,17 @@ function Search() {
     }
 
 
-    const fetchLatestPostsUrls = async () => {
+    const fetchLatestPostsUrls = async (tagValue) => {
+        var recursionAllowed = true;
+        if (tagValue !== undefined) {
+            recursionAllowed = false;
+        } else {
+            tagValue = tag;
+        }
         setPosts(new Map());
         setLoading(true);
         setSuggestedTags([]);
-        saveTag(tag);
+        saveTag(tagValue);
 
         for (let i = 0; i < 10; i++) {
             let post = {
@@ -46,8 +53,9 @@ function Search() {
 
             setPosts(posts => new Map(posts.set(post.id, post)));
         }
-        console.log(tag);
-        let response = await axios.get(`https://${BACKEND_URL}/search/${tag}`, {
+        console.log("fetching latest posts for " + tagValue);
+
+        let response = await axios.get(`https://${BACKEND_URL}/search/${tagValue}`, {
             crossDomain: true,
         });
 
@@ -66,7 +74,27 @@ function Search() {
         }
         if (post_urls.length > 0) {
             fetchPosts(post_urls);
+        } else if (recursionAllowed) {
+            fetchTypo().then((correct_word) => {
+                setTag(correct_word);
+                setTypo(tag);
+                fetchLatestPostsUrls(correct_word);
+            });
         }
+    }
+
+    const fetchTypo = async () => {
+        // base case to prevent recursive calls to backend
+        if (typo === tag) return;
+
+        setTypo(null);
+        let response = await axios.get(`https://${BACKEND_URL}/typo_check/${tag}`, {
+            crossDomain: true,
+        });
+
+        const correct_word = response.data;
+
+        return correct_word;
     }
 
     const fetchMorePostsUrls = async () => {
@@ -119,78 +147,91 @@ function Search() {
     }
 
 
-
     const openPost = (post) => {
         localStorage.setItem('post', JSON.stringify(post));
     }
 
 
-    const saveTag = (tag) => {
-        if (!historyTags.includes(tag)) {
-            localStorage.setItem('searchHistory', JSON.stringify([tag, ...historyTags]));
-            setHistoryTags(historyTags => [tag, ...historyTags]);
+    const saveTag = (t) => {
+        if (!historyTags.includes(t)) {
+            localStorage.setItem('searchHistory', JSON.stringify([t, ...historyTags]));
+            setHistoryTags(historyTags => [t, ...historyTags]);
         }
     }
 
     return (
         <form onSubmit={onFormSubmit}>
             <br />
-            <input type="text" id="tag_field" onChange={(e) => { setTag(e.target.value) }} value={tag} />
+            <input type="text" id="tag_field"
+                onChange={(e) => { setTag(e.target.value) }} />
             <button onClick={async () => {
                 await fetchLatestPostsUrls();
             }}> Send </button>
             <br />
+            {typo !== null ? <div>
+                <br />
+                <div>Showing results for {tag}. Instead of {typo}</div><br />
+            </div> : <div></div>
+            }
             {suggestedTags.length > 0 ? <div>Suggested tags</div> : <div></div>}
-            {suggestedTags.map((tag) => {
-                return (
-                    <Link
-                        to={{
-                            pathname: "/search/" + tag,
-                        }}
-                        key={tag} className="tags" target="_blank"
-                    >{tag}</Link>
-                )
-            })}
-            {posts.size === 0 ? <div>
-                {historyTags.length > 0 ?
-                    <div>Previous searches</div> : <div></div>}
-                {historyTags.map((tag) => {
+            {
+                suggestedTags.map((tag) => {
                     return (
                         <Link
                             to={{
                                 pathname: "/search/" + tag,
                             }}
-                            target="_blank"
-                            key={tag} className="tags"
+                            key={tag} className="tags" target="_blank"
                         >{tag}</Link>
                     )
-                })}</div> : <div></div>}
-            {posts.size > 0 ? [...posts.keys()].map(k =>
-                <div key={k}>
-                    <br />
-                    <Link
-                        to={{
-                            pathname: "/post/" + k,
-                        }}
-                        target="_blank"
-                        onClick={() => openPost(posts.get(k))}
-                    >{posts.get(k).title}</Link>
-                    {posts.get(k)?.tags !== undefined ?
-                        <div>
-                            <div>{"Author: " + posts.get(k)?.creator?.name}</div>
-                            <div>{"Responses count " + posts.get(k)?.responses_count}</div>
-                            <div>{"Claps count " + posts.get(k)?.claps_count}</div>
-                            <div>{posts.get(k)?.tags?.join(", ")}</div>
-                        </div>
-                        : <div></div>}
-                </div >
-            ) : <div></div>}
+                })
+            }
+            {
+                posts.size === 0 ? <div>
+                    {historyTags.length > 0 ?
+                        <div>Previous searches</div> : <div></div>}
+                    {historyTags.map((tag) => {
+                        return (
+                            <Link
+                                to={{
+                                    pathname: "/search/" + tag,
+                                }}
+                                target="_blank"
+                                key={tag} className="tags"
+                            >{tag}</Link>
+                        )
+                    })}</div> : <div></div>
+            }
+            {
+                posts.size > 0 ? [...posts.keys()].map(k =>
+                    <div key={k}>
+                        <br />
+                        <Link
+                            to={{
+                                pathname: "/post/" + k,
+                            }}
+                            target="_blank"
+                            onClick={() => openPost(posts.get(k))}
+                        >{posts.get(k).title}</Link>
+                        {posts.get(k)?.tags !== undefined ?
+                            <div>
+                                <div>{"Author: " + posts.get(k)?.creator?.name}</div>
+                                <div>{"Responses count " + posts.get(k)?.responses_count}</div>
+                                <div>{"Claps count " + posts.get(k)?.claps_count}</div>
+                                <div>{posts.get(k)?.tags?.join(", ")}</div>
+                            </div>
+                            : <div></div>}
+                    </div >
+                ) : <div></div>
+            }
             <br />
-            {!loading ? <button onClick={async () => {
-                await fetchMorePostsUrls();
-            }}> Load more </button> : <br />}
+            {
+                !loading ? <button onClick={async () => {
+                    await fetchMorePostsUrls();
+                }}> Load more </button> : <br />
+            }
             <br />
-        </form>
+        </form >
     )
 }
 
