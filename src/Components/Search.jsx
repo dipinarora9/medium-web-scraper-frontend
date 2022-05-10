@@ -3,6 +3,8 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import './search.css';
 
+const DEBUG = false;
+
 function Search() {
     const [tag, setTag] = useState("");
     const [posts, setPosts] = useState(new Map());
@@ -12,7 +14,7 @@ function Search() {
     const [pageNumber, setPageNumber] = useState(1);
     const [loading, setLoading] = useState(true);
 
-    const BACKEND_URL = "28d5-103-48-197-134.ngrok.io";
+    const BACKEND_URL = DEBUG ? "52ae-103-48-197-134.ngrok.io" : "medium-web-scraper.herokuapp.com";
 
     useEffect(() => {
         let searchHistory = localStorage.getItem('searchHistory');
@@ -98,6 +100,7 @@ function Search() {
     }
 
     const fetchMorePostsUrls = async () => {
+        if (pageNumber > 2) return;
         setPageNumber(pageNumber + 1);
         setLoading(true);
         let tempOldPosts = posts;
@@ -226,7 +229,7 @@ function Search() {
             }
             <br />
             {
-                !loading ? <button onClick={async () => {
+                !loading && pageNumber < 3 ? <button onClick={async () => {
                     await fetchMorePostsUrls();
                 }}> Load more </button> : <br />
             }
