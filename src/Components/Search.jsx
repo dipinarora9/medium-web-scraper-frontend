@@ -82,7 +82,7 @@ function Search() {
             setPosts(posts => new Map(posts.set(post.id, post)));
         }
 
-        let response = await axios.get(`http://${BACKEND_URL}/load_more_posts/${tag}/${pageNumber}`, {
+        let response = await axios.get(`https://${BACKEND_URL}/load_more_posts/${tag}/${pageNumber}`, {
             crossDomain: true,
         });
 
