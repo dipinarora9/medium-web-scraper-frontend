@@ -11,7 +11,7 @@ function Search() {
     const [pageNumber, setPageNumber] = useState(1);
     const [loading, setLoading] = useState(true);
 
-    const NGROK_URL = "d66a-103-48-197-134";
+    const BACKEND_URL = "medium-web-scraper.herokuapp.com";
 
     useEffect(() => {
         let t = window.location.href.split('/').at(-1);
@@ -47,7 +47,7 @@ function Search() {
             setPosts(posts => new Map(posts.set(post.id, post)));
         }
         console.log(tag);
-        let response = await axios.get(`http://${NGROK_URL}.ngrok.io/search/${tag}`, {
+        let response = await axios.get(`https://${BACKEND_URL}/search/${tag}`, {
             crossDomain: true,
         });
 
@@ -82,7 +82,7 @@ function Search() {
             setPosts(posts => new Map(posts.set(post.id, post)));
         }
 
-        let response = await axios.get(`http://${NGROK_URL}.ngrok.io/load_more_posts/${tag}/${pageNumber}`, {
+        let response = await axios.get(`http://${BACKEND_URL}/load_more_posts/${tag}/${pageNumber}`, {
             crossDomain: true,
         });
 
@@ -104,7 +104,7 @@ function Search() {
     }
 
     const fetchPosts = async (postUrls) => {
-        const newSocket = new WebSocket(`ws://${NGROK_URL}.ngrok.io/crawl`);
+        const newSocket = new WebSocket(`wss://${BACKEND_URL}/crawl`);
         newSocket.addEventListener('open', (_) => {
             newSocket.send(JSON.stringify(postUrls));
         });
@@ -123,12 +123,7 @@ function Search() {
     const openPost = (post) => {
         localStorage.setItem('post', JSON.stringify(post));
     }
-    
-    // const searchTag = (t) => {
-    //     setTag(t);
-    //     document.getElementById("tag_field").value = t;
-    //     fetchLatestPostsUrls();
-    // }
+
 
     const saveTag = (tag) => {
         if (!historyTags.includes(tag)) {
