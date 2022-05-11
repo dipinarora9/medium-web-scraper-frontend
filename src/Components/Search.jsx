@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import './search.css';
 import Tags from './Tags';
 
-const DEBUG = false;
+const DEBUG = true;
 
 function Search() {
     const [tag, setTag] = useState("");
@@ -18,9 +18,9 @@ function Search() {
     const [pageNumber, setPageNumber] = useState(1);
     const [loading, setLoading] = useState(true);
 
-    const BACKEND_URL = DEBUG ? "ce16-103-48-197-134.ngrok.io" : "medium-web-scraper.herokuapp.com";
+    const BACKEND_URL = DEBUG ? "b2f6-103-48-197-134.ngrok.io" : "medium-web-scraper.herokuapp.com";
 
-    const AUTOCOMPLETE_BACKEND_URL = DEBUG ? "ce16-103-48-197-134.ngrok.io" : "medium-web-scraper-c5zky.ondigitalocean.app";
+    const AUTOCOMPLETE_BACKEND_URL = DEBUG ? "b2f6-103-48-197-134.ngrok.io" : "medium-web-scraper-c5zky.ondigitalocean.app";
 
     useEffect(() => {
         let searchHistory = localStorage.getItem('searchHistory');
@@ -105,9 +105,8 @@ function Search() {
         return correct_word;
     }
 
-    const fetchTrendingTags = async () => {
+    const fetchTrendingTags = useCallback(async () => {
         if (trendingTags) return;
-
         setTrendingTags([]);
 
         let response = await axios.get(`https://${BACKEND_URL}/trending_tags`, {
@@ -117,12 +116,11 @@ function Search() {
         const tags = response.data;
 
         setTrendingTags(_ => [...tags]);
-    }
+    }, [BACKEND_URL, trendingTags]);
 
     useEffect(() => {
         fetchTrendingTags();
-    }, []);
-
+    }, [fetchTrendingTags]);
 
     const fetchMorePostsUrls = async () => {
         if (pageNumber > 2) return;
