@@ -22,6 +22,7 @@ function Tags({ title, tags, removeBreakes }) {
                 })
             }
             {removeBreakes ? <div></div> : <br />}
+            ----------------------------------------------------
         </div > : <div></div>
     )
 }

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
 import './search.css';
 import Tags from './Tags';
+import Post from './Post';
 
 const DEBUG = false;
 
@@ -243,24 +243,7 @@ function Search() {
             }
             {
                 posts.size > 0 ? [...posts.keys()].map(k =>
-                    <div key={k}>
-                        <br />
-                        <Link
-                            to={{
-                                pathname: "/post/" + k,
-                            }}
-                            target="_blank"
-                            onClick={() => openPost(posts.get(k))}
-                        >{posts.get(k).title}</Link>
-                        {posts.get(k)?.tags !== undefined ?
-                            <div>
-                                <div>{"Author: " + posts.get(k)?.creator?.name}</div>
-                                <div>{"Responses count " + posts.get(k)?.responses_count}</div>
-                                <div>{"Claps count " + posts.get(k)?.claps_count}</div>
-                                <Tags title="Tags" tags={posts.get(k)?.tags} removeBreakes={true} ></Tags>
-                            </div>
-                            : <div></div>}
-                    </div >
+                    <Post post={posts.get(k)} openPost={openPost}></Post>
                 ) : <div></div>
             }
             <br />
