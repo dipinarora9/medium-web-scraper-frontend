@@ -96,7 +96,7 @@ function Search() {
         if (typo === tag) return;
 
         setTypo(null);
-        let response = await axios.get(`https://${WORDS_BACKEND_URL}/typo_check/${tag}`, {
+        let response = await axios.get(`https://${BACKEND_URL}/typo_check/${tag}`, {
             crossDomain: true,
         });
 

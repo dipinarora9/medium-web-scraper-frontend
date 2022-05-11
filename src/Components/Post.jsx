@@ -6,7 +6,7 @@ import Tags from './Tags';
 function Post({ post, openPost }) {
 
     return (
-        <div key={post.id}>
+        <div key={'post_' + post.id}>
             <br />
             <Link
                 to={{
@@ -21,7 +21,7 @@ function Post({ post, openPost }) {
                     <div>{"Responses count " + post?.responses_count}</div>
                     <div>{"Claps count " + post?.claps_count}</div>
                     <div>{"Crawl time " + post?.time_taken_to_crawl}</div>
-                    <Tags key={"post_tags_" + post.id} title="Tags" tags={post?.tags} removeBreakes={true} ></Tags>
+                    <Tags key={"post_tags_" + post.id} title="Post Tags" tags={post?.tags} removeBreakes={true} ></Tags>
                 </div>
                 : <div></div>}
         </div >
