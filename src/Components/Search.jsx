@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import './search.css';
+import Tags from './Tags';
 
 const DEBUG = false;
 
@@ -10,12 +11,16 @@ function Search() {
     const [posts, setPosts] = useState(new Map());
     const [historyTags, setHistoryTags] = useState([]);
     const [suggestedTags, setSuggestedTags] = useState([]);
+    const [autocompleteSocket, setAutocompleteSocket] = useState(null);
+    const [autoCompleteSuggestionsTags, setAutoCompleteSuggestions] = useState([]);
     const [trendingTags, setTrendingTags] = useState(null);
     const [typo, setTypo] = useState(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [loading, setLoading] = useState(true);
 
-    const BACKEND_URL = DEBUG ? "52ae-103-48-197-134.ngrok.io" : "medium-web-scraper.herokuapp.com";
+    const BACKEND_URL = DEBUG ? "ce16-103-48-197-134.ngrok.io" : "medium-web-scraper.herokuapp.com";
+
+    const AUTOCOMPLETE_BACKEND_URL = DEBUG ? "ce16-103-48-197-134.ngrok.io" : "medium-web-scraper-c5zky.ondigitalocean.app";
 
     useEffect(() => {
         let searchHistory = localStorage.getItem('searchHistory');
@@ -169,6 +174,35 @@ function Search() {
         });
     }
 
+    const setupAutocompleteSuggestionsSocket = async () => {
+        return new Promise((resolve, _) => {
+            console.log("CONNECTING");
+            const newSocket = new WebSocket(`wss://${AUTOCOMPLETE_BACKEND_URL}/auto_complete`);
+            newSocket.addEventListener('open', (_) => {
+                resolve(newSocket);
+            });
+
+            newSocket.onmessage = message => {
+                const suggestions = JSON.parse(message.data);
+                setAutoCompleteSuggestions(_ => [...suggestions]);
+            }
+            newSocket.addEventListener('close', (_) => {
+                setAutocompleteSocket(null);
+            });
+        });
+
+
+    }
+
+    const fetchAutocompleteSuggestions = async (keyword) => {
+        if (!autocompleteSocket) {
+            const soc = await setupAutocompleteSuggestionsSocket();
+            setAutocompleteSocket(soc);
+            soc.send(keyword);
+        } else
+            autocompleteSocket.send(keyword);
+    }
+
 
     const openPost = (post) => {
         localStorage.setItem('post', JSON.stringify(post));
@@ -185,10 +219,13 @@ function Search() {
     return (
         <form onSubmit={onFormSubmit}>
             <br />
-            <input type="text" id="tag_field"
+            <input type="text"
+                id="tag_field"
+                autoComplete="off"
                 onChange={(e) => {
                     setTag(e.target.value);
                     setTypo(null);
+                    fetchAutocompleteSuggestions(e.target.value);
                 }} />
             <button onClick={async () => {
                 await fetchLatestPostsUrls();
@@ -199,47 +236,12 @@ function Search() {
                 <div>Showing results for {tag}. Instead of {typo}</div><br />
             </div> : <div></div>
             }
-            {trendingTags && trendingTags.length > 0 ? <div>Trending tags</div> : <div></div>}
+            <Tags title="Autocomplete suggestions" tags={autoCompleteSuggestionsTags}></Tags>
+            <Tags title="Trending tags" tags={trendingTags}></Tags>
+            <Tags title="Suggested tags" tags={suggestedTags}></Tags>
             {
-                trendingTags && trendingTags.map((tag) => {
-                    return (
-                        <Link
-                            to={{
-                                pathname: "/search/" + tag,
-                            }}
-                            key={"trending_" + tag} className="tags" target="_blank"
-                        >{tag}</Link>
-                    )
-                })
-            }
-            {suggestedTags.length > 0 ? <div><br /><div>Suggested tags</div></div> : <div></div>}
-            {
-                suggestedTags.map((tag) => {
-                    return (
-                        <Link
-                            to={{
-                                pathname: "/search/" + tag,
-                            }}
-                            key={"suggested_" + tag} className="tags" target="_blank"
-                        >{tag}</Link>
-                    )
-                })
-            }
-            {
-                posts.size === 0 ? <div>
-                    {historyTags.length > 0 ?
-                        <div><br /><div>Previous searches</div></div> : <div></div>}
-                    {historyTags.map((tag) => {
-                        return (
-                            <Link
-                                to={{
-                                    pathname: "/search/" + tag,
-                                }}
-                                target="_blank"
-                                key={"history_" + tag} className="tags"
-                            >{tag}</Link>
-                        )
-                    })}</div> : <div></div>
+                posts.size === 0 ?
+                    <Tags title="Previous Searches" tags={historyTags}></Tags> : <div></div>
             }
             {
                 posts.size > 0 ? [...posts.keys()].map(k =>
@@ -257,7 +259,7 @@ function Search() {
                                 <div>{"Author: " + posts.get(k)?.creator?.name}</div>
                                 <div>{"Responses count " + posts.get(k)?.responses_count}</div>
                                 <div>{"Claps count " + posts.get(k)?.claps_count}</div>
-                                <div>{posts.get(k)?.tags?.join(", ")}</div>
+                                <Tags title="Tags" tags={posts.get(k)?.tags} removeBreakes={true} ></Tags>
                             </div>
                             : <div></div>}
                     </div >
