@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import './search.css';
 import Tags from './Tags';
 
-const DEBUG = true;
+const DEBUG = false;
 
 function Search() {
     const [tag, setTag] = useState("");
