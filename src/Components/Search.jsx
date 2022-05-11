@@ -20,7 +20,7 @@ function Search() {
 
     const BACKEND_URL = DEBUG ? "b2f6-103-48-197-134.ngrok.io" : "medium-web-scraper.herokuapp.com";
 
-    const AUTOCOMPLETE_BACKEND_URL = DEBUG ? "b2f6-103-48-197-134.ngrok.io" : "medium-web-scraper-c5zky.ondigitalocean.app";
+    const WORDS_BACKEND_URL = DEBUG ? "b2f6-103-48-197-134.ngrok.io" : "medium-web-scraper-c5zky.ondigitalocean.app";
 
     useEffect(() => {
         let searchHistory = localStorage.getItem('searchHistory');
@@ -96,7 +96,7 @@ function Search() {
         if (typo === tag) return;
 
         setTypo(null);
-        let response = await axios.get(`https://${BACKEND_URL}/typo_check/${tag}`, {
+        let response = await axios.get(`https://${WORDS_BACKEND_URL}/typo_check/${tag}`, {
             crossDomain: true,
         });
 
@@ -175,7 +175,7 @@ function Search() {
     const setupAutocompleteSuggestionsSocket = async () => {
         return new Promise((resolve, _) => {
             console.log("CONNECTING");
-            const newSocket = new WebSocket(`wss://${AUTOCOMPLETE_BACKEND_URL}/auto_complete`);
+            const newSocket = new WebSocket(`wss://${WORDS_BACKEND_URL}/auto_complete`);
             newSocket.addEventListener('open', (_) => {
                 resolve(newSocket);
             });
